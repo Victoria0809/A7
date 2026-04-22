@@ -1,0 +1,7 @@
+streamlit
+spacy
+networkx
+requests
+Pillow
+pyperclip
+en-core-web-sm
