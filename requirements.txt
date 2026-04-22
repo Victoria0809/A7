@@ -1,0 +1,6 @@
+streamlit
+spacy
+networkx
+requests
+Pillow
+pyperclip
