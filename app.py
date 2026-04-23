@@ -1,55 +1,49 @@
 import streamlit as st
 import spacy
 import sys
+import os
+
 from components import ner_module, relation_module, kg_visualization
 from knowledge import ner_knowledge, re_knowledge, kg_knowledge
 from utils import export_report
 
-@st.cache_resource
-def load_spacy_model():
-    """健壮的spaCy模型加载函数，支持自动下载和错误处理"""
+def install_and_load_spacy_model():
+    """安装并加载spaCy模型到用户目录"""
     try:
-        st.info("🔄 正在加载spaCy英文模型...")
-        
-        # 尝试加载已安装的模型
+        # 先尝试直接加载（如果已安装）
+        st.info("🔄 正在检查spaCy模型...")
         nlp = spacy.load("en_core_web_sm")
         st.success("✅ spaCy英文模型加载成功！")
         return nlp
-        
-    except ImportError as e:
-        st.warning("⚠️ 模型未找到，尝试自动下载...")
-        
+    except OSError:
+        st.warning("⚠️ 模型未找到，尝试安装到用户目录...")
         try:
-            # 方法1：使用Python命令下载
             import subprocess
-            subprocess.run([sys.executable, "-m", "spacy", "download", "en_core_web_sm"], 
-                          check=True, capture_output=True, text=True)
-            st.info("✅ 模型下载完成，尝试重新加载...")
+            # 使用--user标志安装到用户目录，使用与spacy 3.5.4兼容的模型
+            result = subprocess.run(
+                [sys.executable, "-m", "pip", "install", "--user", 
+                 "https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-3.5.0/en_core_web_sm-3.5.0-py3-none-any.whl"],
+                capture_output=True,
+                text=True,
+                timeout=300
+            )
             
-            # 重新加载模型
-            nlp = spacy.load("en_core_web_sm")
-            st.success("✅ 模型重新加载成功！")
-            return nlp
-            
-        except Exception as download_error:
-            st.error(f"❌ 自动下载失败: {str(download_error)}")
-            st.info("🔧 尝试备用下载方法...")
-            
-            try:
-                # 方法2：使用pip安装
-                import subprocess
-                subprocess.run([sys.executable, "-m", "pip", "install", 
-                              "https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-3.7.0/en_core_web_sm-3.7.0-py3-none-any.whl"], 
-                              check=True, capture_output=True, text=True)
+            if result.returncode == 0:
+                st.info("✅ 模型安装成功，正在加载...")
                 nlp = spacy.load("en_core_web_sm")
-                st.success("✅ 通过备用方法成功加载模型！")
+                st.success("✅ 模型加载成功！")
                 return nlp
-                
-            except Exception as backup_error:
-                st.error(f"❌ 所有下载方法都失败了: {str(backup_error)}")
-                st.error("🚨 请手动运行以下命令安装模型:")
-                st.code("python -m spacy download en_core_web_sm")
+            else:
+                st.error(f"❌ 安装失败: {result.stderr}")
                 return None
+        except Exception as e:
+            st.error(f"❌ 安装出错: {str(e)}")
+            return None
+
+@st.cache_resource
+def load_spacy_model():
+    """健壮的spaCy模型加载函数"""
+    return install_and_load_spacy_model()
 
 # 在应用开始时加载模型
 try:
