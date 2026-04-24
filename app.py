@@ -1,19 +1,30 @@
 import streamlit as st
-import spacy
 
-from components import ner_module, relation_module, kg_visualization
-from knowledge import ner_knowledge, re_knowledge, kg_knowledge
-from utils import export_report
-
-# 尝试加载spaCy模型
+# 尝试导入spacy
 try:
+    import spacy
     nlp = spacy.load("en_core_web_sm")
-except Exception as e:
+except ImportError:
     nlp = None
+    st.warning("⚠️ spaCy未安装，某些功能可能不可用")
+except OSError:
+    nlp = None
+    st.warning("⚠️ spaCy模型未安装，某些功能可能不可用")
 
 # 全局NLP模型变量
 if 'nlp' not in st.session_state:
     st.session_state['nlp'] = nlp
+
+# 延迟导入其他模块，避免在spacy导入失败时崩溃
+try:
+    from components import ner_module, relation_module, kg_visualization
+    from knowledge import ner_knowledge, re_knowledge, kg_knowledge
+    from utils import export_report
+except Exception as e:
+    st.error(f"❌ 导入模块失败: {e}")
+    ner_module = relation_module = kg_visualization = None
+    ner_knowledge = re_knowledge = kg_knowledge = None
+    export_report = None
 
 def main():
     # 页面配置
@@ -99,7 +110,7 @@ def main():
         
         .highlight-gpe {
             background-color: #ff99cc;
-            color: #cc0066;
+            color: #cc0000;
             padding: 2px 6px;
             border-radius: 4px;
             font-weight: 500;
@@ -142,19 +153,34 @@ def main():
     tabs = st.tabs(["📝 实体识别", "🔗 关系抽取", "🌍 知识图谱", "📋 实验报告"])
     
     with tabs[0]:
-        ner_module.render_module()
-        ner_knowledge.render_knowledge()
+        if ner_module:
+            ner_module.render_module()
+        else:
+            st.info("实体识别模块加载失败")
+        if ner_knowledge:
+            ner_knowledge.render_knowledge()
     
     with tabs[1]:
-        relation_module.render_module()
-        re_knowledge.render_knowledge()
+        if relation_module:
+            relation_module.render_module()
+        else:
+            st.info("关系抽取模块加载失败")
+        if re_knowledge:
+            re_knowledge.render_knowledge()
     
     with tabs[2]:
-        kg_visualization.render_module()
-        kg_knowledge.render_knowledge()
+        if kg_visualization:
+            kg_visualization.render_module()
+        else:
+            st.info("知识图谱模块加载失败")
+        if kg_knowledge:
+            kg_knowledge.render_knowledge()
     
     with tabs[3]:
-        export_report.render_report()
+        if export_report:
+            export_report.render_report()
+        else:
+            st.info("实验报告模块加载失败")
     
     # 底部提交要求提醒
     st.markdown("""
