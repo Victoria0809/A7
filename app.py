@@ -1,55 +1,14 @@
 import streamlit as st
 import spacy
-import sys
-import os
 
 from components import ner_module, relation_module, kg_visualization
 from knowledge import ner_knowledge, re_knowledge, kg_knowledge
 from utils import export_report
 
-def install_and_load_spacy_model():
-    """安装并加载spaCy模型到用户目录"""
-    try:
-        # 先尝试直接加载（如果已安装）
-        st.info("🔄 正在检查spaCy模型...")
-        nlp = spacy.load("en_core_web_sm")
-        st.success("✅ spaCy英文模型加载成功！")
-        return nlp
-    except OSError:
-        st.warning("⚠️ 模型未找到，尝试安装到用户目录...")
-        try:
-            import subprocess
-            # 使用--user标志安装到用户目录，使用与spacy 3.5.4兼容的模型
-            result = subprocess.run(
-                [sys.executable, "-m", "pip", "install", "--user", 
-                 "https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-3.5.0/en_core_web_sm-3.5.0-py3-none-any.whl"],
-                capture_output=True,
-                text=True,
-                timeout=300
-            )
-            
-            if result.returncode == 0:
-                st.info("✅ 模型安装成功，正在加载...")
-                nlp = spacy.load("en_core_web_sm")
-                st.success("✅ 模型加载成功！")
-                return nlp
-            else:
-                st.error(f"❌ 安装失败: {result.stderr}")
-                return None
-        except Exception as e:
-            st.error(f"❌ 安装出错: {str(e)}")
-            return None
-
-@st.cache_resource
-def load_spacy_model():
-    """健壮的spaCy模型加载函数"""
-    return install_and_load_spacy_model()
-
-# 在应用开始时加载模型
+# 尝试加载spaCy模型
 try:
-    nlp = load_spacy_model()
+    nlp = spacy.load("en_core_web_sm")
 except Exception as e:
-    st.error(f"❌ 应用启动失败: {str(e)}")
     nlp = None
 
 # 全局NLP模型变量
