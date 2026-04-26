@@ -7,6 +7,10 @@ from utils import export_report
 # 尝试加载spaCy模型
 try:
     nlp = spacy.load("en_core_web_sm")
+except OSError as e:
+    st.error(f"spaCy模型未正确安装: {e}")
+    st.error("请确保requirements.txt中包含了en_core_web_sm模型")
+    nlp = None
 except Exception as e:
     st.error(f"无法加载spaCy模型: {e}")
     nlp = None
